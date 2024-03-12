@@ -1,0 +1,180 @@
+Program.Sub.ScreenSU.Start
+gui.SS_Form1..create
+gui.SS_Form1..caption("Positive Pay")
+gui.SS_Form1..size(2265,2535)
+gui.SS_Form1..position(0,0)
+gui.SS_Form1..event(unload,unload)
+gui.SS_Form1..alwaysontop(False)
+gui.SS_Form1..fontname("Arial")
+gui.SS_Form1..fontsize(8)
+gui.SS_Form1..forecolor(0)
+gui.SS_Form1..fontstyle(,,,,)
+gui.SS_Form1..BackColor(-2147483633)
+gui.SS_Form1..controlbox(True)
+gui.SS_Form1..maxbutton(False)
+gui.SS_Form1..minbutton(False)
+gui.SS_Form1..mousepointer(0)
+gui.SS_Form1..moveable(True)
+gui.SS_Form1..sizeable(False)
+gui.SS_Form1..ShowInTaskBar(True)
+gui.SS_Form1..titlebar(True)
+gui.SS_Form1.lbl_dtpFrom.create(label,"From",True,1800,200,1,100,135,True,0,Arial,8,-2147483633,0)
+gui.SS_Form1.dtpFrom.create(datepicker)
+gui.SS_Form1.dtpFrom.visible(True)
+gui.SS_Form1.dtpFrom.size(1800,345)
+gui.SS_Form1.dtpFrom.zorder(0)
+gui.SS_Form1.dtpFrom.position(100,335)
+gui.SS_Form1.dtpFrom.enabled(True)
+gui.SS_Form1.dtpFrom.checkbox(False)
+gui.SS_Form1.lbl_dtpTo.create(label,"To",True,1800,200,1,100,765,True,0,Arial,8,-2147483633,0)
+gui.SS_Form1.dtpTo.create(datepicker)
+gui.SS_Form1.dtpTo.visible(True)
+gui.SS_Form1.dtpTo.size(1800,345)
+gui.SS_Form1.dtpTo.zorder(0)
+gui.SS_Form1.dtpTo.position(100,965)
+gui.SS_Form1.dtpTo.enabled(True)
+gui.SS_Form1.dtpTo.checkbox(False)
+gui.SS_Form1.chkPayroll.create(checkbox)
+gui.SS_Form1.chkPayroll.caption("Payroll checks")
+gui.SS_Form1.chkPayroll.visible(False)
+gui.SS_Form1.chkPayroll.size(1800,300)
+gui.SS_Form1.chkPayroll.zorder(0)
+gui.SS_Form1.chkPayroll.position(100,2200)
+gui.SS_Form1.chkPayroll.enabled(False)
+gui.SS_Form1.chkPayroll.alignment(0)
+gui.SS_Form1.chkPayroll.fontname("Arial")
+gui.SS_Form1.chkPayroll.fontsize(8)
+gui.SS_Form1.chkAP.create(checkbox)
+gui.SS_Form1.chkAP.caption("AP checks")
+gui.SS_Form1.chkAP.visible(False)
+gui.SS_Form1.chkAP.size(1800,300)
+gui.SS_Form1.chkAP.zorder(0)
+gui.SS_Form1.chkAP.position(100,2000)
+gui.SS_Form1.chkAP.enabled(False)
+gui.SS_Form1.chkAP.alignment(0)
+gui.SS_Form1.chkAP.fontname("Arial")
+gui.SS_Form1.chkAP.fontsize(8)
+gui.SS_Form1.cmdSubmit.create(button)
+gui.SS_Form1.cmdSubmit.caption("Process")
+gui.SS_Form1.cmdSubmit.visible(True)
+gui.SS_Form1.cmdSubmit.size(1000,360)
+gui.SS_Form1.cmdSubmit.zorder(0)
+gui.SS_Form1.cmdSubmit.position(100,1595)
+gui.SS_Form1.cmdSubmit.enabled(True)
+gui.SS_Form1.cmdSubmit.fontname("Arial")
+gui.SS_Form1.cmdSubmit.fontsize(8)
+gui.SS_Form1.cmdSubmit.event(click,cmdsubmit_click)
+
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+F.ODBC.Connection!con.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+'AP > Admin > Amegy Positive Pay
+Gui.SS_Form1..Show
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4573_AP_Payroll_Positive_Pay.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.CallSub(unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.cmdsubmit_click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdsubmit_click_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local..BulkDeclareDate( dDateFrom, dDateTo)
+V.Local.bCheck.Declare(Boolean,False)
+V.Local.fDecimal.Declare(Float)
+V.Local..BulkDeclareString(sSql, sRet, sFile, sFilePath, sDecimal, sError, sDate) 
+V.Local.iC.Declare(Long)
+
+V.Local.dDateFrom.Set(V.Screen.SS_Form1!dtpFrom.Value)
+V.Local.dDateTo.Set(V.Screen.SS_Form1!dtpTo.Value)
+F.Intrinsic.Control.If(V.Local.dDateFrom,>,V.Local.dDateTo)
+	F.Intrinsic.UI.Msgbox("Selected date range is invalid.","GAB Error")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+Gui.SS_Form1..Visible(False)
+
+'first checks_log 'account # 5792393513
+F.Intrinsic.String.Build("Select * From V_CHECKS_LOG Where CK_DATE Between '{0}' And '{1}'", V.Local.dDateFrom.PervasiveDate, V.Local.dDateTo.PervasiveDate, V.Local.sSql)
+F.Data.DataTable.CreateFromSQL("AP", "con",V.Local.sSql)
+Function.Intrinsic.Control.If(V.DataTable.AP.RowCount, <, 1)
+	F.Intrinsic.UI.Msgbox("No records found for AP checks.","Search Results")
+F.Intrinsic.Control.Else
+	'create text
+	F.Intrinsic.Control.For(V.Local.iC, 0, V.DataTable.AP.RowCount--, 1)
+		V.Local.sDate.Set(V.DataTable.AP(V.Local.iC).CK_DATE!FieldValPervasiveDate)
+		F.Intrinsic.String.Replace(V.Local.sDate, "-", "/", V.Local.sDate)
+		F.Intrinsic.String.Build("{0}{1},{2},{3},{4},{5},{6}{7}", V.Local.sRet,"5792393513", V.DataTable.AP(V.Local.iC).CK_NO!FieldValTrim, V.DataTable.AP(V.Local.iC).CK_OR_VOID!FieldValTrim, V.Local.sDate, V.DataTable.AP(V.Local.iC).AMOUNT!FieldValTrim, V.DataTable.AP(V.Local.iC).PAYEE!FieldValTrim, V.Ambient.NewLine,V.Local.sRet)
+	F.Intrinsic.Control.Next(V.Local.iC)
+F.Intrinsic.Control.EndIf
+F.Data.DataTable.Close("AP")
+
+'add payroll checks ' account " 5792393653
+F.Intrinsic.String.Build("Select * From V_PAYROLL_CHECKS Where CK_DATE Between '{0}' And '{1}'", V.Local.dDateFrom.PervasiveDate, V.Local.dDateTo.PervasiveDate, V.Local.sSql)
+F.Data.DataTable.CreateFromSQL("AP", "con",V.Local.sSql)
+Function.Intrinsic.Control.If(V.DataTable.AP.RowCount, <, 1)
+	F.Intrinsic.UI.Msgbox("No records found for Payroll checks.","Search Results")
+F.Intrinsic.Control.Else
+	'create text
+	F.Intrinsic.Control.For(V.Local.iC, 0, V.DataTable.AP.RowCount--, 1)
+		V.Local.sDate.Set(V.DataTable.AP(V.Local.iC).CK_DATE!FieldValPervasiveDate)
+		F.Intrinsic.String.Replace(V.Local.sDate, "-", "/", V.Local.sDate)
+		F.Intrinsic.String.Build("{0}{1},{2},{3},{4},{5},{6}{7}", V.Local.sRet,"5792393653", V.DataTable.AP(V.Local.iC).CK_NO!FieldValTrim, V.DataTable.AP(V.Local.iC).CK_OR_VOID!FieldValTrim, V.Local.sDate, V.DataTable.AP(V.Local.iC).AMOUNT!FieldValTrim, V.DataTable.AP(V.Local.iC).PAYEE!FieldValTrim, V.Ambient.NewLine,V.Local.sRet)
+	F.Intrinsic.Control.Next(V.Local.iC)
+F.Intrinsic.Control.EndIf
+F.Data.DataTable.Close("AP")
+
+F.Intrinsic.String.Concat(V.Caller.FilesDir,"\PositivePay",V.Local.sFilepath)
+F.Intrinsic.File.DirExists(V.Local.sFilepath,V.Local.bCheck)
+F.Intrinsic.Control.If(V.Local.bCheck,=,False)
+	F.Intrinsic.File.CreateDir(V.Local.sFilepath)
+F.Intrinsic.Control.EndIf
+F.Intrinsic.String.Build("{0}\{1}.{2}.txt", V.Local.sFilepath, "MetalZincLLC",V.Ambient.Now.formatmmmmddyyyy_HhNnSsam/pm, V.Local.sFile)
+F.Intrinsic.File.String2File(V.Local.sFile,V.Local.sRet)
+F.Intrinsic.UI.Msgbox("Export successful","GAB Executor")
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("cmdsubmit_click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4573_AP_Payroll_Positive_Pay.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.CallSub(unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdsubmit_click.End
+
+Program.Sub.Unload.Start
+F.Intrinsic.Control.SetErrorHandler("Unload_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+Gui.SS_Form1..Visible(False)
+F.ODBC.Connection!con.Close
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("Unload_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4573_AP_Payroll_Positive_Pay.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.End
+
+Function.Intrinsic.Control.EndIf
+Program.Sub.Unload.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$DH1$}$7/10/2017 4:34:29 PM$}$False
+${$3$}$0$}$$}$0$}$-1$}$$}$12:00:00 AM$}$This project will create a CSV file that will contain Accounts Payable and Payroll check information
+
+Program.Sub.Comments.End
